@@ -2,6 +2,7 @@ package com.example.subscription_service.entity;
 
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -15,8 +16,13 @@ public class User {
     private String name;
     private String email;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<Subscription> subscriptions;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Subscription> subscriptions = new ArrayList<>();
+
+    public void addSubscription(Subscription subscription) {
+        subscriptions.add(subscription);
+        subscription.setUser(this);
+    }
 
     public Long getId() {
         return id;

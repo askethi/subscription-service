@@ -1,16 +1,15 @@
 package com.example.subscription_service.controller;
 
-import com.example.subscription_service.entity.ServiceName;
-import com.example.subscription_service.entity.Subscription;
+import com.example.subscription_service.dto.*;
 import com.example.subscription_service.entity.User;
 import com.example.subscription_service.service.SubscriptionService;
 import com.example.subscription_service.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/users")
@@ -18,11 +17,13 @@ public class UserController {
 
     private final UserService userService;
     private final SubscriptionService subscriptionService;
+    private final DtoMapper dtoMapper;
 
     @Autowired
-    public UserController(UserService userService, SubscriptionService subscriptionService) {
+    public UserController(UserService userService, SubscriptionService subscriptionService, DtoMapper dtoMapper) {
         this.userService = userService;
         this.subscriptionService = subscriptionService;
+        this.dtoMapper = dtoMapper;
     }
 
     @PostMapping
@@ -31,8 +32,11 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public Optional<User> getUser(@PathVariable Long id) {
-        return userService.getUser(id);
+    public ResponseEntity<UserDTO> getUser(@PathVariable Long id) {
+        return userService.getUser(id)
+                .map(dtoMapper::toUserDto)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
@@ -47,18 +51,16 @@ public class UserController {
 
 
     @PostMapping("/{id}/subscriptions")
-    public Subscription addSubscription(@PathVariable Long id, @RequestParam ServiceName serviceName) {
-        Subscription subscription = new Subscription();
-        subscription.setId(id);
-        subscription.setServiceName(serviceName);
-        subscription.setStartDate(LocalDateTime.now());
-        subscription.setEndDate(LocalDateTime.now().plusMonths(1));
-        return subscriptionService.addSubscription(id, subscription);
+    public ResponseEntity<SubscriptionResponse> addSubscription(@PathVariable Long id, @RequestBody SubscriptionRequest request) {
+        return ResponseEntity.ok(subscriptionService.addSubscription(id, request));
     }
 
     @GetMapping("/{id}/subscriptions")
-    public List<Subscription> getSubscriptions(@PathVariable Long id) {
-        return subscriptionService.getSubscriptions(id);
+    public List<SubscriptionDTO> getSubscriptions(@PathVariable Long id) {
+        return subscriptionService.getSubscriptions(id)
+                .stream()
+                .map(dtoMapper::toSubscriptionDto)
+                .collect(Collectors.toList());
     }
 
     @DeleteMapping("/{id}/subscriptions/{subId}")
